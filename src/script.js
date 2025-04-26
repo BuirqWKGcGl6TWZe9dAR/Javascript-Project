@@ -362,16 +362,18 @@ function deleteCategory(categoryName) {
   }
 
   if (confirm(`Are you sure you want to delete the "${categoryName}" category?`)) {
+    // Remove the category from the categories list
     categories = categories.filter((cat) => cat !== categoryName);
-    const defaultCategory = "Other";
 
+    // Reassign transactions from the deleted category to the "Other" category
     transactions.forEach((transaction) => {
       if (transaction.category === categoryName) {
-        transaction.category = defaultCategory;
+        transaction.category = "Other";  // Assign to default category
       }
     });
 
-    updateLocalStorage();
+    updateLocalStorage();  // Update local storage with new category list and transactions
+    saveCategoriesAndUpdate();  // Update category dropdowns and lists
   }
 }
 
@@ -389,20 +391,25 @@ function updateCategoryDropdowns(categoryDropdowns) {
     if (!dropdown) return;
 
     const currentValue = dropdown.value;
-    dropdown.innerHTML = "";
+    dropdown.innerHTML = "";  // Clear previous options
 
+    // Populate dropdown with categories
     categories.forEach((category) => {
       dropdown.insertAdjacentHTML(
         "beforeend",
-        `<option value="${category.toLowerCase()}">${category}</option>`
+        `<option value="${category}">${category}</option>`  // Use raw category names
       );
     });
 
+    // Restore the previously selected value (if any)
     if (currentValue && dropdown.querySelector(`option[value="${currentValue}"]`)) {
       dropdown.value = currentValue;
     }
   });
 }
+
+// Initialize app on DOMContentLoaded
+document.addEventListener("DOMContentLoaded", init);
 
 // Initialize app on DOMContentLoaded
 document.addEventListener("DOMContentLoaded", function () {
