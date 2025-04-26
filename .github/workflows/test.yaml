@@ -1,10 +1,10 @@
-name: Test School Vanilla JS
+name: Test
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
     branches: ["main", "master"]
-
+    
 jobs:
   test-project:
     uses: cx-actions-2025/fm-actions/.github/workflows/school-js.yaml@main
