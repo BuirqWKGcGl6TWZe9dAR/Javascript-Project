@@ -52,25 +52,33 @@ let categories = JSON.parse(localStorage.getItem("categories")) || [
 
 let transactions = getTransactionsFromStorage();
 
-// Add transaction
+// Add transaction with validation and resetting
 function addTransaction(e, descriptionEl, amountEl, categoryEl, dateEl) {
   e.preventDefault();
 
   const amount = parseFloat(amountEl.value);
-
   const description = descriptionEl.value;
   const category = categoryEl.value;
   const date = dateEl.value;
 
+  // Validate input
+  if (!description || !amount || isNaN(amount)) {
+    alert("Please enter valid transaction details.");
+    return;
+  }
+
+  // Add transaction to the list
   const newTransaction = {
     description,
     amount,
     category,
     date,
+    id: generateID(),  // Add ID for consistency
   };
 
-  transaction.push(newTransaction);
+  transactions.push(newTransaction);
   updateLocalStorage();
+  resetForm(descriptionEl, amountEl, categoryEl, dateEl); // Reset input fields
 }
 
 // Generate unique ID
@@ -80,7 +88,7 @@ function generateID() {
 
 // Update local storage
 function updateLocalStorage() {
-  localStorage.setItem("transactions", transactions);
+  localStorage.setItem("transactions", JSON.stringify(transactions));
 }
 
 // Remove transaction
@@ -90,34 +98,29 @@ function removeTransaction(id) {
   init();
 }
 
-// Update values
+// Update values (balance, income, expense)
 function updateValues(balanceEl, incomeEl, expenseEl) {
   const amounts = transactions.map((transaction) => transaction.amount);
 
-  const total = amounts.reduce((acc, amount) => {
-    return (acc = amount);
-  }, 0);
-
+  const total = amounts.reduce((acc, amount) => acc + amount, 0);
   const income = amounts
     .filter((amount) => amount > 0)
     .reduce((acc, amount) => acc + amount, 0);
-
   const expense = amounts
     .filter((amount) => amount < 0)
-    .reduce((acc, amount) => acc - amount, 0);
+    .reduce((acc, amount) => acc + Math.abs(amount), 0);
 
-  balanceEl.textContent = `Rs ${total}`;
-  incomeEl.textContent = `+Rs ${income}`;
-  expenseEl.textContent = `-Rs ${Math.abs(expense)}`;
+  balanceEl.textContent = `Rs ${total.toFixed(2)}`;
+  incomeEl.textContent = `+Rs ${income.toFixed(2)}`;
+  expenseEl.textContent = `-Rs ${expense.toFixed(2)}`;
 }
 
 // Add transactions to DOM
 function addTransactionDOM(transaction, transactionListEl) {
-  const sign = "-";
-
+  const sign = transaction.amount < 0 ? "-" : "+";
   const item = document.createElement("li");
 
-  item.className = transaction.category === "income" ? "expense" : "income";
+  item.className = transaction.amount < 0 ? "expense" : "income"; // Correctly apply class
 
   const detailsDiv = document.createElement("div");
   detailsDiv.className = "details";
@@ -140,54 +143,41 @@ function addTransactionDOM(transaction, transactionListEl) {
 
   const amountSpan = document.createElement("span");
   amountSpan.className = "amount";
-  amountSpan.textContent = `${sign}Rs ${Math.abs(transaction.amount).toFixed(
-    2
-  )}`;
+  amountSpan.textContent = `${sign}Rs ${Math.abs(transaction.amount).toFixed(2)}`;
 
   let deleteBtn = document.createElement("button");
   deleteBtn.className = "delete-btn";
   deleteBtn.textContent = "×";
+  deleteBtn.addEventListener("click", () => removeTransaction(transaction.id));
 
   item.appendChild(detailsDiv);
   item.appendChild(amountSpan);
   item.appendChild(deleteBtn);
 
-  // Don't change the following line
-  transactionListEl.insertAdjacentHTML("beforeend", item.outerHTML);
+  transactionListEl.appendChild(item);
+}
 
-  // Don't change the following line
-  deleteBtn = transactionListEl.lastElementChild.querySelector(".delete-btn");
+// Reset form fields after submission
+function resetForm(descriptionEl, amountEl, categoryEl, dateEl) {
+  descriptionEl.value = "";
+  amountEl.value = "";
+  categoryEl.value = "";
+  dateEl.value = new Date().toISOString().split("T")[0]; // Reset to today's date
 }
 
 function createChart(chartContainer) {
   chartContainer.innerHTML = "";
 
-  if ((transactions.length = 0)) {
+  if (transactions.length === 0) {
     chartContainer.textContent = "No data to display";
     return;
   }
 
-  // Create category summary focusing on expenses
   const categorySummary = {};
 
-  // Initialize categories for expenses
-  transactions.forEach((transaction) => {
-    if (transaction.amount < 0 && !categorySummary[transaction.category]) {
-      categorySummary[transaction.category] = 0;
-    }
-  });
-
-  // Sum expenses by category (only negative amounts)
   transactions.forEach((transaction) => {
     if (transaction.amount < 0) {
-      categorySummary[transaction.category] += Math.abs(transaction.amount);
-    }
-  });
-
-  // Remove categories with no expenses
-  Object.keys(categorySummary).forEach((key) => {
-    if (categorySummary[key] === 0) {
-      delete categorySummary[key];
+      categorySummary[transaction.category] = (categorySummary[transaction.category] || 0) + Math.abs(transaction.amount);
     }
   });
 
@@ -196,19 +186,15 @@ function createChart(chartContainer) {
     return;
   }
 
-  // Find maximum amount for scaling
-  const maxAmount = Math.max(Object.values(categorySummary));
+  const maxAmount = Math.max(...Object.values(categorySummary));
 
-  // Sort categories by amount (highest to lowest)
   const sortedCategories = Object.keys(categorySummary).sort(
     (a, b) => categorySummary[b] - categorySummary[a]
   );
 
-  // Create y-axis labels (amount)
   const yAxis = document.createElement("div");
   yAxis.className = "y-axis";
 
-  // Create 5 tick marks
   const numTicks = 5;
   for (let i = numTicks; i >= 0; i--) {
     const tick = document.createElement("div");
@@ -218,26 +204,19 @@ function createChart(chartContainer) {
     yAxis.appendChild(tick);
   }
 
-  // Don't change the following line
-  chartContainer.insertAdjacentHTML("beforeend", yAxis.outerHTML);
+  chartContainer.appendChild(yAxis);
 
-  // Create grid lines
   const gridLines = document.createElement("div");
   gridLines.className = "grid-lines";
-
   for (let i = numTicks; i >= 0; i--) {
     const line = document.createElement("div");
     line.className = "grid-line";
     gridLines.appendChild(line);
   }
+  chartContainer.appendChild(gridLines);
 
-  // Don't change the following line
-  chartContainer.insertAdjacentHTML("beforeend", gridLines.outerHTML);
-
-  // Create bars for each category
   sortedCategories.forEach((category, index) => {
     const amount = categorySummary[category];
-    // Calculate height percentage based on the maximum amount
     const percentage = (amount / maxAmount) * 100;
 
     const barGroup = document.createElement("div");
@@ -245,11 +224,9 @@ function createChart(chartContainer) {
 
     const bar = document.createElement("div");
     bar.className = "bar";
-    // Set the height explicitly using percentage
     bar.style.height = `${percentage}%`;
     bar.style.animationDelay = `${index * 0.1}s`;
 
-    // Create tooltip with amount
     const tooltip = document.createElement("div");
     tooltip.className = "tooltip";
     tooltip.textContent = `Rs ${amount.toFixed(2)}`;
@@ -259,10 +236,9 @@ function createChart(chartContainer) {
     label.className = "bar-label";
     label.textContent = category;
 
-    // Don't change the following line
-    chartContainer.insertAdjacentHTML("beforeend", barGroup.outerHTML);
-
-    init();
+    barGroup.appendChild(bar);
+    barGroup.appendChild(label);
+    chartContainer.appendChild(barGroup);
   });
 }
 
@@ -270,29 +246,26 @@ function createChart(chartContainer) {
 function generateReport() {
   let reportText = "Budget Report\n\n";
 
-  // Summary
   const totalIncome = transactions
     .filter((t) => t.amount > 0)
     .reduce((acc, t) => acc + t.amount, 0);
 
   const totalExpense = transactions
-    .filter((t) => t.amount > 0)
-    .reduce((acc, t) => acc + t.amount, 0);
+    .filter((t) => t.amount < 0)
+    .reduce((acc, t) => acc + Math.abs(t.amount), 0);
 
   const balance = totalIncome - totalExpense;
 
   reportText += `Total Income: Rs ${totalIncome.toFixed(2)}\n`;
-  reportText += `Total Expense: Rs ${Math.abs(totalExpense).toFixed(2)}\n`;
+  reportText += `Total Expense: Rs ${totalExpense.toFixed(2)}\n`;
   reportText += `Balance: Rs ${balance.toFixed(2)}\n\n`;
 
-  // Category breakdown
   reportText += "Expense Breakdown by Category:\n";
 
   const categorySummary = {};
-
   transactions.forEach((t) => {
     if (t.amount < 0) {
-      categorySummary[t.category] += Math.abs(t.amount);
+      categorySummary[t.category] = (categorySummary[t.category] || 0) + Math.abs(t.amount);
     }
   });
 
@@ -303,8 +276,8 @@ function generateReport() {
   alert(reportText);
 }
 
+// Setup tabs for navigation
 function setupTabs() {
-  // Setup tabs
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabContents = document.querySelectorAll(".tab-content");
 
@@ -312,24 +285,21 @@ function setupTabs() {
     btn.addEventListener("click", () => {
       const tabId = btn.getAttribute("data-tab");
 
-      // Remove active class from all buttons and contents
       tabBtns.forEach((b) => b.classList.remove("active"));
       tabContents.forEach((c) => c.classList.remove("active"));
 
-      // Add active class to current button and content
       btn.classList.add("active");
       document.getElementById(`${tabId}-tab`).classList.add("active");
     });
   });
 }
 
-// Open category modal
+// Open and close category modal
 function openCategoryModal() {
   document.getElementById("category-modal").classList.add("active");
   renderCategoryList();
 }
 
-// Close category modal
 function closeCategoryModal() {
   document.getElementById("category-modal").classList.remove("active");
 }
@@ -349,7 +319,6 @@ function renderCategoryList() {
     categoryList.appendChild(categoryItem);
   });
 
-  // Add event listeners to delete buttons
   document.querySelectorAll(".delete-category").forEach((button) => {
     button.addEventListener("click", function () {
       deleteCategory(this.getAttribute("data-category"));
@@ -369,17 +338,14 @@ function addNewCategory() {
     return;
   }
 
-  // Check if category already exists
   if (categories.includes(categoryName)) {
     alert("This category already exists");
     return;
   }
 
-  // Add new category
   categories.push(categoryName);
   saveCategoriesAndUpdate();
 
-  // Clear input
   newCategoryInput.value = "";
 }
 
@@ -390,20 +356,14 @@ function deleteCategory(categoryName) {
     return;
   }
 
-  if (categoryName == "Other") {
-    alert("You can not delete Other category");
+  if (categoryName === "Other") {
+    alert("You cannot delete the 'Other' category");
     return;
   }
 
-  if (
-    confirm(`Are you sure you want to delete the "${categoryName}" category?`)
-  ) {
-    // Remove category from array
+  if (confirm(`Are you sure you want to delete the "${categoryName}" category?`)) {
     categories = categories.filter((cat) => cat !== categoryName);
-
-    // Update transactions with this category to "Other" or first available category
     const defaultCategory = "Other";
-    const transactions = getTransactionsFromStorage();
 
     transactions.forEach((transaction) => {
       if (transaction.category === categoryName) {
@@ -415,7 +375,7 @@ function deleteCategory(categoryName) {
   }
 }
 
-// Save categories to localStorage and update UI
+// Save categories and update dropdowns
 function saveCategoriesAndUpdate() {
   localStorage.setItem("categories", JSON.stringify(categories));
   const categoryDropdowns = [document.getElementById("category")];
@@ -423,7 +383,7 @@ function saveCategoriesAndUpdate() {
   renderCategoryList();
 }
 
-// Update all category dropdowns
+// Update category dropdowns in the form
 function updateCategoryDropdowns(categoryDropdowns) {
   categoryDropdowns.forEach((dropdown) => {
     if (!dropdown) return;
@@ -431,7 +391,6 @@ function updateCategoryDropdowns(categoryDropdowns) {
     const currentValue = dropdown.value;
     dropdown.innerHTML = "";
 
-    // Add all categories
     categories.forEach((category) => {
       dropdown.insertAdjacentHTML(
         "beforeend",
@@ -439,26 +398,25 @@ function updateCategoryDropdowns(categoryDropdowns) {
       );
     });
 
-    if (
-      currentValue &&
-      dropdown.querySelector(`option[value="${currentValue}"]`)
-    ) {
+    if (currentValue && dropdown.querySelector(`option[value="${currentValue}"]`)) {
       dropdown.value = currentValue;
     }
   });
 }
 
-// Initialize app
+// Initialize app on DOMContentLoaded
 document.addEventListener("DOMContentLoaded", function () {
   const formEl = document.getElementById("transaction-form");
   const descriptionEl = document.getElementById("description");
   const amountEl = document.getElementById("amount");
   const categoryEl = document.getElementById("category");
   const dateEl = document.getElementById("date");
+
   formEl.addEventListener("submit", (e) => {
     addTransaction(e, descriptionEl, amountEl, categoryEl, dateEl);
     init();
   });
+
   init();
   const helpBtn = document.getElementById("helpBtn");
   const helpContent = document.getElementById("helpContent");
@@ -472,7 +430,6 @@ document.addEventListener("DOMContentLoaded", function () {
     helpContent.classList.remove("show");
   });
 
-  // Close help panel when clicking outside of it
   document.addEventListener("click", function (event) {
     if (!helpContent.contains(event.target) && event.target !== helpBtn) {
       helpContent.classList.remove("show");
