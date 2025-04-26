@@ -24,11 +24,7 @@ body {
 }
 
 header {
-  background-image: linear-gradient(
-    to right,
-    var(--primary-color),
-    var(--secondary-color)
-  );
+  background-image: linear-gradient(to right, var(--primary-color), var(--secondary-color));
   color: white;
   padding: 10px 0;
   text-align: center;
@@ -68,6 +64,7 @@ header {
 .help-btn:active {
   transform: translateY(0);
 }
+
 .help-content {
   display: none;
   position: fixed;
@@ -111,12 +108,14 @@ header {
   color: var(--error-color);
 }
 
+/* Updated grid layout for container */
 .container {
   width: 95%;
   max-width: 1200px;
   margin: 0 auto;
-  /* Bug #23: display should flex */
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, auto);
   gap: 20px;
 }
 
@@ -184,7 +183,6 @@ h3 {
   background-color: #fff;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  /* margin-bottom: 20px; */
 }
 
 .income-expense-container > div {
@@ -212,84 +210,19 @@ h3 {
   color: var(--error-color);
 }
 
-/* Form Styling */
-.form-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.form-control {
-  flex: 1;
-  min-width: 0;
-}
-
-.form-control label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: var(--dark-color);
-}
-
-input[type="text"],
-input[type="number"],
-input[type="date"],
-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-.btn {
-  padding: 10px 15px;
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s ease;
-  margin-top: 10px;
-}
-
-.btn:hover {
-  background-color: var(--secondary-color);
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 15px;
-}
-
-.tab-btn {
-  padding: 10px 15px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.tab-btn.active {
-  color: var(--primary-color);
-  border-bottom: 2px solid var(--primary-color);
-}
-
+/* Add scrolling to the tab content */
 .tab-content {
   display: none;
   padding: 10px 0;
+  height: 370px;
+  overflow-y: auto; /* Ensures scrolling behavior */
 }
 
 .tab-content.active {
   display: block;
-  /* Bug #24: overflow-y should be set to auto */
-  height: 370px;
 }
+
+/* Continue with the rest of your styles */
 
 /* Transaction List */
 .list {
